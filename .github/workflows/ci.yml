@@ -13,14 +13,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # 👇 Install pnpm explicitly (adds it to PATH)
+      # Install pnpm so it's on PATH
       - name: Install pnpm
         run: npm install -g pnpm
 
+      # Install deps (no frozen lockfile since we don't commit one)
       - name: Install deps
         run: pnpm install --no-frozen-lockfile
 
