@@ -5,8 +5,9 @@ import { sendBookingUpdate } from '@/app/actions/notify'
 const Schema = z.object({
   to: z.string().regex(/^\+\d{10,15}$/),
   orgName: z.string().min(1),
-  type: z.enum(['booking_confirmed','tech_on_the_way','job_complete']),
-  vars: z.record(z.any()).optional(),
+  type: z.enum(['booking_confirmed', 'tech_on_the_way', 'job_complete']),
+  // ✅ make the key type explicit to avoid TS overload noise in CI
+  vars: z.record(z.string(), z.any()).optional().default({}),
 })
 
 export async function POST(req: NextRequest) {
