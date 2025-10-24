@@ -2,5 +2,13 @@
 	"dependencies": {
 		"@supabase/ssr": "^0.7.0",
 		"@supabase/supabase-js": "^2.76.1"
+	},
+	"lint-staged": {
+		"*.{js,ts,tsx,css,md}": "prettier --write"
+	},
+	"devDependencies": {
+		"husky": "^9.1.7",
+		"lint-staged": "^16.2.6",
+		"prettier": "^3.6.2"
 	}
 }
