@@ -1,23 +1,54 @@
 'use client'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
-import { useState } from 'react'
+import React, { useState } from 'react'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
-function Form({ clientSecret, onDone }: { clientSecret: string; onDone: (ok: boolean, msg?: string) => void }) {
+function Form({
+  clientSecret,
+  onDone,
+}: {
+  clientSecret: string
+  onDone: (ok: boolean, msg?: string) => void
+}) {
   const stripe = useStripe()
   const elements = useElements()
-  async function submit(e: any) {
+  const [loading, setLoading] = useState(false)
+
+  async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!stripe || !elements) return
-    const { error } = await stripe.confirmPayment({ elements, clientSecret, redirect: 'if_required' })
+    if (!stripe || !elements || loading) return
+    setLoading(true)
+
+    // ✅ REQUIRED: collect & validate any fields in Payment Element
+    const { error: submitError } = await elements.submit()
+    if (submitError) {
+      setLoading(false)
+      onDone(false, submitError.message)
+      return
+    }
+
+    // Then confirm the payment (no redirect in test mode)
+    const { error } = await stripe.confirmPayment({
+      elements,
+      clientSecret,
+      redirect: 'if_required',
+    })
+
+    setLoading(false)
     onDone(!error, error?.message)
   }
+
   return (
     <form onSubmit={submit} className="space-y-4">
       <PaymentElement />
-      <button className="bg-amber-500 text-white rounded px-4 py-2 w-full" disabled={!stripe}>Start Pro</button>
+      <button
+        className="bg-amber-500 text-white rounded px-4 py-2 w-full disabled:opacity-50"
+        disabled={!stripe || loading}
+      >
+        {loading ? 'Processing…' : 'Start Pro'}
+      </button>
     </form>
   )
 }
