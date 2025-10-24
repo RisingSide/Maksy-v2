@@ -1,33 +1,27 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { stripe } from '@/lib/stripe'
 
 export async function POST() {
   try {
     const cookieStore = await cookies()
-
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options?: any) {
-            // ✅ Next 16 requires object format for cookies
-            cookieStore.set({ name, value, ...(options || {}) })
-          },
-          remove(name: string, options?: any) {
-            // expire the cookie safely
+          get: (n) => cookieStore.get(n)?.value,
+          set: (name, value, options) =>
+            cookieStore.set({ name, value, ...(options || {}) }),
+          remove: (name, options) =>
             cookieStore.set({
               name,
               value: '',
               expires: new Date(0),
               ...(options || {}),
-            })
-          },
+            }),
         },
       }
     )
@@ -35,22 +29,50 @@ export async function POST() {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-
     if (!user) throw new Error('Not signed in')
 
-    const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
-      customer_email: user.email!,
-      line_items: [
-        { price: process.env.STRIPE_PRICE_PRO_MONTHLY!, quantity: 1 },
-      ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=1`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?canceled=1`,
+    // require an existing org
+    const { data: prof, error: profErr } = await supabase
+      .from('profiles')
+      .select('default_org_id')
+      .eq('id', user.id)
+      .single()
+    if (profErr) throw new Error(profErr.message)
+    const orgId = prof?.default_org_id as string
+    if (!orgId)
+      throw new Error(
+        'No default organization. Create an org before upgrading.'
+      )
+
+    // Create a Stripe customer for this org (link back by metadata)
+    const customer = await stripe.customers.create({
+      email: user.email || undefined,
+      metadata: { orgId },
     })
 
-    return NextResponse.json({ ok: true, url: session.url })
-  } catch (err: any) {
-    console.error('Billing intent error:', err.message)
-    return NextResponse.json({ ok: false, error: err.message }, { status: 400 })
+    // Link immediately in DB (no magic—server write with service role)
+    await supabaseAdmin
+      .from('organizations')
+      .update({ stripe_customer_id: customer.id })
+      .eq('id', orgId)
+
+    // Create subscription in incomplete state (client will confirm card with Payment Element)
+    const sub = await stripe.subscriptions.create({
+      customer: customer.id,
+      items: [{ price: process.env.STRIPE_PRICE_PRO_MONTHLY! }],
+      payment_behavior: 'default_incomplete',
+      metadata: { orgId },
+      expand: ['latest_invoice.payment_intent'],
+    })
+
+    const pi = (sub.latest_invoice as any)?.payment_intent
+    return NextResponse.json({
+      clientSecret: pi?.client_secret,
+      subscriptionId: sub.id,
+      customerId: customer.id,
+    })
+  } catch (e: any) {
+    console.error('[billing:create-subscription-intent]', e.message)
+    return NextResponse.json({ error: e.message }, { status: 400 })
   }
 }
