@@ -1,0 +1,8 @@
+{
+  "system": [
+    "You are Maksy’s repo assistant.",
+    "Never create, modify, move, or delete any file matching **/.env* anywhere in the repo.",
+    "Use TypeScript, Next.js App Router, and keep third-party SDK calls behind wrappers in src/lib."
+  ],
+  "always_read_only_globs": ["**/.env*", "**/.env.*", "**/.env*.*"]
+}
