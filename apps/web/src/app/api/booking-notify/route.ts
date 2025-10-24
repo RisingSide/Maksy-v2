@@ -1,10 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { sendBookingUpdate } from '@/app/actions/notify'
+
+const Schema = z.object({
+  to: z.string().regex(/^\+\d{10,15}$/),
+  orgName: z.string().min(1),
+  type: z.enum(['booking_confirmed','tech_on_the_way','job_complete']),
+  vars: z.record(z.any()).optional(),
+})
+
 export async function POST(req: NextRequest) {
   try {
-    const { to, orgName, type, vars } = await req.json()
-    if (!to || !orgName || !type) return NextResponse.json({ ok:false, error:'Missing to, orgName, type' }, { status: 400 })
-    const { sid, body } = await sendBookingUpdate({ to, orgName, type, vars })
-    return NextResponse.json({ ok:true, sid, body })
-  } catch (e:any) { return NextResponse.json({ ok:false, error:e.message }, { status:500 }) }
+    const payload = await req.json()
+    const data = Schema.parse(payload)
+    const { sid, body } = await sendBookingUpdate(data)
+    return NextResponse.json({ ok: true, sid, body })
+  } catch (e: any) {
+    const msg = e?.issues ? JSON.stringify(e.issues) : e.message
+    return NextResponse.json({ ok: false, error: msg }, { status: 400 })
+  }
 }
