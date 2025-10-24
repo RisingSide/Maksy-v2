@@ -19,6 +19,22 @@ jobs:
         run: npm install -g pnpm
       - name: Install deps
         run: pnpm install --no-frozen-lockfile
+      - name: 🔍 Verify and auto-install missing dependencies
+        run: |
+          set -e
+          MISSING=()
+          for pkg in @stripe/stripe-js @stripe/react-stripe-js @supabase/supabase-js @supabase/ssr; do
+            if ! pnpm list $pkg > /dev/null 2>&1; then
+              echo "⚠️ Missing dependency: $pkg"
+              MISSING+=($pkg)
+            fi
+          done
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "🚀 Installing missing dependencies: ${MISSING[@]}"
+            pnpm add -w ${MISSING[@]}
+          else
+            echo "✅ All dependencies already installed."
+          fi
       - name: Lint
         run: pnpm lint
       - name: Build
