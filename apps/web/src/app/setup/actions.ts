@@ -15,18 +15,31 @@ export async function createOrganization(formData: FormData): Promise<void> {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // Bridge Next 16 cookies ↔ @supabase/ssr types so CI passes
       cookies: {
-        get: (n) => cookieStore.get(n)?.value,
-        set: (name, value, options) =>
-          cookieStore.set({ name, value, ...(options || {}) }),
-        remove: (name, options) =>
-          cookieStore.set({
-            name,
-            value: '',
-            expires: new Date(0),
-            ...(options || {}),
-          }),
-      },
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options?: any) {
+          try {
+            ;(cookieStore as any).set({ name, value, ...(options || {}) })
+          } catch {
+            ;(cookieStore as any).set(name, value, options)
+          }
+        },
+        remove(name: string, options?: any) {
+          try {
+            ;(cookieStore as any).delete(name, options)
+          } catch {
+            ;(cookieStore as any).set({
+              name,
+              value: '',
+              expires: new Date(0),
+              ...(options || {}),
+            })
+          }
+        },
+      } as any, // ← type bridge
     }
   )
 
