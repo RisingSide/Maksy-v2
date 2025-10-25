@@ -1,14 +1,17 @@
-// @ts-check
 import path from 'path'
+import type { NextConfig } from 'next'
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  // silence the workspace warning
+const nextConfig: NextConfig = {
+  // workspace fix
   outputFileTracingRoot: path.join(__dirname, '..', '..'),
 
-  // ✅ unblock CI: ignore type/lint errors during production build
+  // ✅ only ignore type errors, eslint is removed (Next16 removed this option)
   typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
+
+  experimental: {
+    // keeps App Router stable
+    serverActions: { allowedOrigins: ['*'] },
+  },
 }
 
 export default nextConfig
