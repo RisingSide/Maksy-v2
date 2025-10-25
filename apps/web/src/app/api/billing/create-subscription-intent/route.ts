@@ -7,22 +7,13 @@ import { stripe } from '@/lib/stripe'
 export async function POST() {
   try {
     const cookieStore = await cookies()
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
-        cookies: {
-          get: (n) => cookieStore.get(n)?.value,
-          set: (name, value, options) =>
-            cookieStore.set({ name, value, ...(options || {}) }),
-          remove: (name, options) =>
-            cookieStore.set({
-              name,
-              value: '',
-              expires: new Date(0),
-              ...(options || {}),
-            }),
-        },
+        // ✅ Next 16 + @supabase/ssr current API: pass a function returning the store
+        cookies: () => cookieStore,
       }
     )
 
