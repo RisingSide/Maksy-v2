@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export function proxy(_req: NextRequest) {
+export default function proxy(_req: NextRequest) {
   const res = NextResponse.next()
   res.headers.set('X-Frame-Options', 'DENY')
   res.headers.set('X-Content-Type-Options', 'nosniff')
   res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-  res.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()')
+  res.headers.set(
+    'Permissions-Policy',
+    'geolocation=(), microphone=(), camera=()'
+  )
   return res
 }
 
