@@ -1,32 +1,40 @@
-import { cookies } from 'next/headers'
-import { createServerClient } from '@supabase/ssr'
-import UpgradeModal from './upgrade-modal'
+'use client'
 
-export default async function BillingPage() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (n) => cookieStore.get(n)?.value,
-        set: (name, value, options) =>
-          cookieStore.set({ name, value, ...(options || {}) }),
-        remove: (name, options) =>
-          cookieStore.set({
-            name,
-            value: '',
-            expires: new Date(0),
-            ...(options || {}),
-          }),
-      },
-    }
+import { useEffect, useState } from 'react'
+import UpgradeModal from './upgrade-modal'
+import { supabase } from '@/lib/supabaseClient'
+
+export default function BillingPage() {
+  const [state, setState] = useState<'loading' | 'signed-out' | 'ready'>(
+    'loading'
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
+  useEffect(() => {
+    let mounted = true
+    async function init() {
+      // Browser-side session check avoids SSR cookie typing issues
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!mounted) return
+      setState(user ? 'ready' : 'signed-out')
+    }
+    init()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  if (state === 'loading') {
+    return (
+      <main className="min-h-screen grid place-items-center p-8">
+        <div>Loading…</div>
+      </main>
+    )
+  }
+
+  if (state === 'signed-out') {
     return (
       <main className="min-h-screen grid place-items-center p-8">
         <a className="bg-amber-500 text-white px-4 py-2 rounded" href="/login">
