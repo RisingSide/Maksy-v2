@@ -12,8 +12,31 @@ export async function POST() {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
-        // ✅ Next 16 + @supabase/ssr current API: pass a function returning the store
-        cookies: () => cookieStore,
+        // Cast to any to satisfy current @supabase/ssr cookie types in CI
+        cookies: {
+          get: (name: string) => cookieStore.get(name)?.value,
+          set: (name: string, value: string, options?: any) => {
+            // Next 16 prefers object form; fall back to tuple if needed
+            try {
+              ;(cookieStore as any).set({ name, value, ...(options || {}) })
+            } catch {
+              ;(cookieStore as any).set(name, value, options)
+            }
+          },
+          remove: (name: string, options?: any) => {
+            // Prefer delete(); fall back to expiring cookie
+            try {
+              ;(cookieStore as any).delete(name, options)
+            } catch {
+              ;(cookieStore as any).set({
+                name,
+                value: '',
+                expires: new Date(0),
+                ...(options || {}),
+              })
+            }
+          },
+        } as any, // 👈 type bridge to pass Next build/CI
       }
     )
 
