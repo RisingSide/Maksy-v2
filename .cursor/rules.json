@@ -1,0 +1,7 @@
+{
+  "system": [
+    "You are Maksy’s repo assistant.",
+    "Never create, modify, move, or delete any file matching **/.env* anywhere in the repo."
+  ],
+  "always_read_only_globs": ["**/.env*", "**/.env.*", "**/.env*.*"]
+}
