@@ -1,11 +1,14 @@
 {
 	"scripts": {
 		"db:gen": "drizzle-kit generate",
-		"db:push": "echo 'Blocked: use SQL migrations. See OPERATIONS.md' && exit 1",
+		"db:migrate": "tsx scripts/apply-migrations.ts",
+		"db:push": "cd apps/web && drizzle-kit push",
+		"db:studio": "cd apps/web && drizzle-kit studio",
 		"drizzle:push": "node -e \"if(!process.env.ALLOW_DB_PUSH){console.error('Blocked. Set ALLOW_DB_PUSH=1 to proceed.');process.exit(1)}\" && drizzle-kit push --config=drizzle.config.ts",
 		"db:plan": "drizzle-kit generate --config=drizzle.config.ts",
 		"db:seed": "tsx scripts/seed-demo.ts",
 		"verify": "tsx scripts/verify-foundation.ts",
+		"test:foundation": "tsx scripts/test-foundation.ts",
 		"smoke": "tsx scripts/smoke.ts",
 		"smoke:auth": "tsx scripts/smoke-auth.ts",
 		"smoke:routes": "tsx scripts/smoke-routes.ts",
@@ -13,12 +16,15 @@
 	},
 	"dependencies": {
 		"@supabase/ssr": "^0.7.0",
-		"@supabase/supabase-js": "^2.76.1"
+		"@supabase/supabase-js": "^2.76.1",
+		"isomorphic-dompurify": "^2.33.0",
+		"lru-cache": "^11.2.4"
 	},
 	"lint-staged": {
 		"*.{js,ts,tsx,css,md}": "prettier --write"
 	},
 	"devDependencies": {
+		"@types/pg": "^8.15.6",
 		"dotenv": "^17.2.3",
 		"drizzle-kit": "^0.31.5",
 		"drizzle-orm": "^0.44.7",

@@ -20,8 +20,8 @@ if (!connectionString) {
 }
 
 export default {
+  dialect: 'postgresql',
   schema: './src/db/schema.ts',
   out: './supabase/migrations',
-  driver: 'pg',
-  dbCredentials: { connectionString },
+  dbCredentials: { url: connectionString },
 }
